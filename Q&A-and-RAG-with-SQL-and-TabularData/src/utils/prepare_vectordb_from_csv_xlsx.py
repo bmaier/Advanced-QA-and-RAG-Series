@@ -2,6 +2,12 @@ import os
 import pandas as pd
 from utils.load_config import LoadConfig
 import pandas as pd
+from openai import Embedding
+import openai
+from openai import OpenAI
+import chromadb
+
+
 
 
 class PrepareVectorDBFromTabularData:
@@ -24,8 +30,10 @@ class PrepareVectorDBFromTabularData:
         """
         self.APPCFG = LoadConfig()
         self.file_directory = file_directory
-        
-        
+        self.client = OpenAI(api_key=self.APPCFG.openai_client.api_key, base_url=self.APPCFG.openai_client.base_url) 
+
+
+
     def run_pipeline(self):
         """
         Execute the entire pipeline for preparing the database from the CSV.
@@ -44,6 +52,12 @@ class PrepareVectorDBFromTabularData:
         Raises an error if the collection_name already exists in ChromaDB.
         The method prints a confirmation message upon successful data injection.
         """
+        try:
+            self.APPCFG.chroma_client.delete_collection(name=self.APPCFG.collection_name)
+        except chromadb.errors.CollectionNotFoundError:
+        # Ignore this error if the collection doesn't exist yet
+            pass
+
         collection = self.APPCFG.chroma_client.create_collection(name=self.APPCFG.collection_name)
         collection.add(
             documents=self.docs,
@@ -53,7 +67,7 @@ class PrepareVectorDBFromTabularData:
         )
         print("==============================")
         print("Data is stored in ChromaDB.")
-    
+
     def _load_dataframe(self, file_directory: str):
         """
         Load a DataFrame from the specified CSV or Excel file.
@@ -79,7 +93,7 @@ class PrepareVectorDBFromTabularData:
             return df, file_name
         else:
             raise ValueError("The selected file type is not supported")
-        
+
 
     def _prepare_data_for_injection(self, df:pd.DataFrame, file_name:str):
         """
@@ -101,16 +115,25 @@ class PrepareVectorDBFromTabularData:
             # Treat each row as a separate chunk
             for col in df.columns:
                 output_str += f"{col}: {row[col]},\n"
-            response = self.APPCFG.azure_openai_client.embeddings.create(
-                input = output_str,
-                model= self.APPCFG.embedding_model_name
-            )
+
+            # TODO: The 'openai.api_base' option isn't read in the client API. You will need to pass it when you instantiate the client, e.g. 'OpenAI(base_url=self.APPCFG.openai_client.base_url)'
+            # openai.api_base = self.APPCFG.openai_client.base_url
+            
+            response = self.client.embeddings.create(
+                input=output_str,
+                model=self.APPCFG.embedding_model_name)
+
+            """ response = self.APPCFG.openai_client.Embedding embeddings.create(
+                input=output_str,
+                model=self.APPCFG.embedding_model_name
+            ) """
             embeddings.append(response.data[0].embedding)
+
             docs.append(output_str)
             metadatas.append({"source": file_name})
             ids.append(f"id{index}")
         return docs, metadatas, ids, embeddings
-        
+
 
     def _validate_db(self):
         """
