@@ -9,7 +9,6 @@ import chromadb
 from openai import OpenAI
 from openai import Embedding
 import openai
-from pprint import pprint
 
 print("Environment variables are loaded:", load_dotenv())
 
@@ -37,27 +36,8 @@ class LoadConfig:
 
     def load_llm_configs(self, app_config):
         self.model_name = "gpt-3.5-turbo"
-        pprint("---------app_config----------")
-        pprint(app_config)
-        pprint("---------llm_config----------")
-        pprint(app_config["llm_config"])
-        pprint("---------model_name----------")
-        pprint(app_config["llm_config"]["model_name"])
-        pprint("---------agent_llm_system_role----------")
-        pprint(app_config["llm_config"]["agent_llm_system_role"])
-        pprint("---------rag_llm_system_role----------")
-        pprint(app_config["llm_config"]["rag_llm_system_role"])
-        pprint("--------temperature-----------")
-        pprint(app_config["llm_config"]["temperature"])
-        pprint("--------embed_deployment_name-----------")
-        pprint(os.getenv("embed_deployment_name"))
-        pprint("-------------------")
-
+        
         self.model_name = app_config["llm_config"]["model_name"]  # Load model name from config
-
-        pprint("---------Start model_name----------")
-        pprint(self.model_name)
-        pprint("---------End model_name----------")
 
         self.agent_llm_system_role = app_config["llm_config"]["agent_llm_system_role"]
 
